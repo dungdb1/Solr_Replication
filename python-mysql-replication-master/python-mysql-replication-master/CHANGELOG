@@ -1,0 +1,58 @@
+0.1 01/05/2013
+* Initial Release with MySQL 5.5 and MySQL 5.6 support
+
+0.2 13/10/2013
+* Make it work under pymysql 0.6
+* Ignore position of some events
+* Fix FormatDescriptionEvent has zero log_pos
+* Support checksum for mysql 5.6
+* Add feature to start stream from position
+* Change names of events to V2
+* Added NotImplementedEvent for a few events that we currently don't need
+* Support null events and a slight change of names
+* Support MySQL Broken Dates :(
+* Introduce data objects for Table / Column
+* Add support for TINYINT(1) to bool() Mapping
+
+0.3 07/07/2014
+* use NotImplementedEvent instead of raising an Exception
+* Python 3 fix
+* Add 2006 to Mysql expected error codes
+
+0.4 01/09/2014
+* Add primary column informations (thanks to Lx Lu)
+* Python 2.6 support (thanks to Darioush Jalalinasab)
+* Parse gtid events (thanks to Arthur Gautier)
+* Code cleanup (thanks to Bernardo Sulzbach)
+* Travis support
+
+0.4.1 01/09/2014
+* Fix missing commit for GTID in 0.4 release
+
+0.5 28/09/2014
+* Remove default server id
+* Performances improvements
+* Allow filter events by schema and tables
+
+0.6 10/05/2015
+* Prevent invalid table-map-entries to crash the whole app
+* Add support for Stop Event, update tests
+* Fix the order of binlog events, though we don't support them yet
+* Simplified RowsEvent.rows to be @property instead of __getattr__ hack
+* add binlog row minimal and noblob image support
+* remove six not being used.
+* misc code style improvements, mainly pep8
+* Update event.py to be compatible with python2.6.7
+* explicitly break reference cycle when closing binlogstreamreader
+* break reference loop using weakref to prevent memory-leaking
+* Freeze schema.
+* Freeze table schema
+* Avoid named parameters passed to packet because it's slower
+* Filter table and schema event
+* PyPy support
+
+0.7 21/06/2015
+* Partial fix for dropped columns blowing up replication when replaying binlog with past events
+* Skipping GTID tests on DBs not set up to support GTID
+* Adding support for skipping the binlog until reaching specified timestamp.
+* Add support for BeginLoadQueryEvent and ExecuteLoadQueryEvent
