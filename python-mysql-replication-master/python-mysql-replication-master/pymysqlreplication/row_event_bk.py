@@ -505,6 +505,7 @@ class UpdateRowsEvent(RowsEvent):
         for row in self.rows:
             print("--")
             updateno = {}
+            
             for key in row["before_values"]:
                 print("*%s:%s=>%s" % (key,
                                       row["before_values"][key],
@@ -512,13 +513,21 @@ class UpdateRowsEvent(RowsEvent):
                 
                 for docu in data1["doc1"]:
                     if (docu["schema"] == self.schema) and (docu["table"] == self.table):
-                        if key in docu["columns"]:
-                            #print("key===========%s" % key)
-                            if (key==docu["columns"][key]):
-                                updateno[docu["columns"][key]] = row["after_values"][key]
-                                break
-                        else: 
-                            print("don't exits %s " % key)
+                        if key=="id":
+                            updateno["id"] = row["after_values"][key]
+                            break
+                        elif key=="status":
+                            updateno["status"] = row["after_values"][key]
+                            break
+                        elif key=="title":
+                            updateno["title"] = row["after_values"][key]
+                            break
+                        elif key=="content":
+                            updateno["content"] = row["after_values"][key]
+                            break    
+                        elif key=="lastupdate":
+                            updateno["lastupdate"] = row["after_values"][key]
+                            break
                             
             print(updateno)
         

@@ -1,0 +1,28 @@
+{
+    "doc1": [
+        {
+            "schema": "mycarrer",
+            "table": "news",
+			"solr_url": "http://localhost:8983/solr/mysql",
+			"columns":{
+				"id": "id",
+				"title": "title",
+				"content": "content"
+				
+			}
+			
+        },
+		{
+            "schema": "schemaxxx",
+            "table": "tablexxx",
+			"solr_url": "http://localhost:8983/solr/mysql",
+			"columns":{
+				"id": "id",
+				"title": "title",
+				"content": "content"
+				
+			}
+			
+        }
+    ]
+}
