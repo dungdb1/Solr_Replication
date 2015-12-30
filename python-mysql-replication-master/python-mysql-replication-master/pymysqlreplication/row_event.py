@@ -426,12 +426,33 @@ class DeleteRowsEvent(RowsEvent):
     def _dump(self):
         super(DeleteRowsEvent, self)._dump()
         print("Values:")
+        with open('config.json', encoding='utf-8') as data_file:
+            data1 = json.load(data_file)
+        data_file.close();
         for row in self.rows:
             print("--")
+            
+            str_dele_value=""
             for key in row["values"]:
                 print("*", key, ":", row["values"][key])
-
-
+                for docu in data1["doc1"]:
+                    if (docu["schema"] == self.schema) and (docu["table"] == self.table):
+                        if (key == docu["id"]):
+                                str_dele_value= row["values"][key]
+                                break
+                        else: 
+                            print("don't exits %s " % key)
+                        url_solr = docu["solr_url"]
+                        break
+        #print("delete id ===========%s" % str_dele_value)
+        if (url_solr != ""):
+            # Setup a Solr instance. The timeout is optional.
+            solr = pysolr.Solr(url_solr, timeout=10)
+            # How you'd index data.
+            solr.delete(id=str_dele_value)
+            print("Deleted from Solr server!")
+        else: 
+            print("Changes set don't related to Solr!")
 class WriteRowsEvent(RowsEvent):
     """This event is triggered when a row in database is added
 
@@ -454,13 +475,39 @@ class WriteRowsEvent(RowsEvent):
 
     def _dump(self):
         super(WriteRowsEvent, self)._dump()
-        print("Values:")
+        #print("Values:")
+        with open('config.json', encoding='utf-8') as data_file:
+            data1 = json.load(data_file)
+        data_file.close();
+        
+        url_solr = "";
+        
         for row in self.rows:
-            print("--")
+            #print("--")
+            Str_add = {}
             for key in row["values"]:
-                print("*", key, ":", row["values"][key])
-
-
+                #print("*", key, ":", row["values"][key])
+                for docu in data1["doc1"]:
+                    if (docu["schema"] == self.schema) and (docu["table"] == self.table):
+                        if key in docu["columns"]:
+                            if (key==docu["columns"][key]):
+                                Str_add[docu["columns"][key]] = row["values"][key]
+                                break
+                        #else: 
+                            #print("don't exits %s " % key)
+                        url_solr = docu["solr_url"]
+                        break
+        #print(Str_add)
+        
+        
+        if (url_solr != ""):
+            # Setup a Solr instance. The timeout is optional.
+            solr = pysolr.Solr(url_solr, timeout=10)
+            # How you'd index data.
+            solr.add([Str_add])
+            print("Added to Solr server!")
+        else: 
+            print("Changes set don't related to Solr!")            
 class UpdateRowsEvent(RowsEvent):
     """This event is triggered when a row in the database is changed
 
@@ -471,7 +518,10 @@ class UpdateRowsEvent(RowsEvent):
     Depending of your MySQL configuration the hash can contains the full row or only the changes:
     http://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.html#sysvar_binlog_row_image
     """
-
+    
+   
+   
+        
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         
         super(UpdateRowsEvent, self).__init__(from_packet, event_size,
@@ -494,13 +544,13 @@ class UpdateRowsEvent(RowsEvent):
     def _dump(self):
         super(UpdateRowsEvent, self)._dump()
         print("Affected columns: %d" % self.number_of_columns)
-        print("Values:")
-        print("###############################")
+        print("#######Values:#######")
         
         with open('config.json', encoding='utf-8') as data_file:
             data1 = json.load(data_file)
-        print("$$$$$$$$$$$$$$$$$$$")
+        data_file.close();
         
+        url_solr = "";
         
         for row in self.rows:
             print("--")
@@ -519,13 +569,21 @@ class UpdateRowsEvent(RowsEvent):
                                 break
                         else: 
                             print("don't exits %s " % key)
+                        url_solr = docu["solr_url"]
+                        break
+                        
                             
             print(updateno)
         
-        # Setup a Solr instance. The timeout is optional.
-        solr = pysolr.Solr('http://localhost:8983/solr/mysql/', timeout=10)
-        # How you'd index data.
-        solr.add([updateno])
+        
+        if (url_solr != ""):
+            # Setup a Solr instance. The timeout is optional.
+            solr = pysolr.Solr(url_solr, timeout=10)
+            # How you'd index data.
+            solr.add([updateno])
+        else: 
+            print("Changes set don't related to Solr!")   
+        
        
 class TableMapEvent(BinLogEvent):
     """This evenement describe the structure of a table.

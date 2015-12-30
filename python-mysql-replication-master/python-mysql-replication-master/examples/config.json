@@ -3,7 +3,8 @@
         {
             "schema": "mycarrer",
             "table": "news",
-			"solr_url": "http://localhost:8983/solr/mysql",
+			"solr_url": "http://localhost:8983/solr/document1/",
+			"id":"id",
 			"columns":{
 				"id": "id",
 				"title": "title",
@@ -13,13 +14,16 @@
 			
         },
 		{
-            "schema": "schemaxxx",
-            "table": "tablexxx",
-			"solr_url": "http://localhost:8983/solr/mysql",
+            "schema": "mycarrer",
+            "table": "user",
+			"solr_url": "http://localhost:8983/solr/document2/",
+			"id":"id_user",
 			"columns":{
-				"id": "id",
-				"title": "title",
-				"content": "content"
+				"id_user": "id_user",
+				"user_name": "user_name",
+				"full_name": "full_name",
+				"email": "email",
+				"mobile": "mobile"
 				
 			}
 			
