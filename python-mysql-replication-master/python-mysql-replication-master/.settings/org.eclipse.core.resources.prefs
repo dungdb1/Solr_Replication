@@ -1,6 +1,8 @@
 eclipse.preferences.version=1
+encoding//docs/conf.py=utf-8
 encoding//examples/dump_events.py=utf-8
 encoding//pymysqlreplication/binlogstream.py=utf-8
+encoding//pymysqlreplication/event.py=utf-8
 encoding//pymysqlreplication/packet.py=utf-8
 encoding//pymysqlreplication/row_event.py=utf-8
 encoding//pymysqlreplication/row_event_bk.py=utf-8

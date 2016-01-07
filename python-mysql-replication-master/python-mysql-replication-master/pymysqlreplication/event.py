@@ -29,14 +29,14 @@ class BinLogEvent(object):
         return struct.unpack('<Q', table_id)[0]
 
     def dump(self):
-        print("=== %s ===" % (self.__class__.__name__))
-        print("Date: %s" % (datetime.datetime.fromtimestamp(self.timestamp)
-                            .isoformat()))
-        print("Log position: %d" % self.packet.log_pos)
-        print("Event size: %d" % (self.event_size))
-        print("Read bytes: %d" % (self.packet.read_bytes))
+        #print("=== %s ===" % (self.__class__.__name__))
+        #print("Date: %s" % (datetime.datetime.fromtimestamp(self.timestamp)
+        #                    .isoformat()))
+        #print("Log position: %d" % self.packet.log_pos)
+        #print("Event size: %d" % (self.event_size))
+        #print("Read bytes: %d" % (self.packet.read_bytes))
         self._dump()
-        print()
+        #print()
 
     def _dump(self):
         """Core data dumped for the event"""
@@ -114,7 +114,7 @@ class XidEvent(BinLogEvent):
 
     def _dump(self):
         super(XidEvent, self)._dump()
-        print("Transaction ID: %d" % (self.xid))
+        #print("Transaction ID: %d" % (self.xid))
 
 
 class QueryEvent(BinLogEvent):
@@ -142,9 +142,9 @@ class QueryEvent(BinLogEvent):
 
     def _dump(self):
         super(QueryEvent, self)._dump()
-        print("Schema: %s" % (self.schema))
-        print("Execution time: %d" % (self.execution_time))
-        print("Query: %s" % (self.query))
+        #print("Schema: %s" % (self.schema))
+        #print("Execution time: %d" % (self.execution_time))
+        #print("Query: %s" % (self.query))
 
 
 class BeginLoadQueryEvent(BinLogEvent):

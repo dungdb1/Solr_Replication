@@ -6,6 +6,9 @@ import decimal
 import datetime
 import pysolr
 import json
+import time
+import timeit
+import threading
 
 from pprint import pprint
 
@@ -19,7 +22,28 @@ from .table import Table
 from .bitmap import BitCount, BitGet
 from _sqlite3 import Row
 
+
+json_obj_add = []
+
+obj_solr_add = []
+
+
+
+with open('config.json', encoding='utf-8') as data_file:
+    data1 = json.load(data_file)
+    print("read file config!")
+data_file.close()
+
+
+for p_tmp in data1["doc1"]:
+    tmp = {}
+    tmp["url_docu"] = p_tmp["solr_url"]
+    tmp["data"] = []
+    json_obj_add.append(tmp)
+
+
 class RowsEvent(BinLogEvent):
+       
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         
         super(RowsEvent, self).__init__(from_packet, event_size, table_map,
@@ -384,9 +408,9 @@ class RowsEvent(BinLogEvent):
 
     def _dump(self):
         super(RowsEvent, self)._dump()
-        print("Table: %s.%s" % (self.schema, self.table))
-        print("Affected columns: %d" % self.number_of_columns)
-        print("Changed rows: %d" % (len(self.rows)))
+        #print("Table: %s.%s" % (self.schema, self.table))
+        #print("Affected columns: %d" % self.number_of_columns)
+        #print("Changed rows: %d" % (len(self.rows)))
 
     def _fetch_rows(self):
         self.__rows = []
@@ -425,16 +449,16 @@ class DeleteRowsEvent(RowsEvent):
 
     def _dump(self):
         super(DeleteRowsEvent, self)._dump()
-        print("Values:")
-        with open('config.json', encoding='utf-8') as data_file:
-            data1 = json.load(data_file)
-        data_file.close();
+        #print("Values:")
+        #with open('config.json', encoding='utf-8') as data_file:
+        #    data1 = json.load(data_file)
+        #data_file.close();
         for row in self.rows:
-            print("--")
+            #print("--")
             
             str_dele_value=""
             for key in row["values"]:
-                print("*", key, ":", row["values"][key])
+                #print("*", key, ":", row["values"][key])
                 for docu in data1["doc1"]:
                     if (docu["schema"] == self.schema) and (docu["table"] == self.table):
                         if (key == docu["id"]):
@@ -444,15 +468,15 @@ class DeleteRowsEvent(RowsEvent):
                             print("don't exits %s " % key)
                         url_solr = docu["solr_url"]
                         break
-        #print("delete id ===========%s" % str_dele_value)
-        if (url_solr != ""):
-            # Setup a Solr instance. The timeout is optional.
-            solr = pysolr.Solr(url_solr, timeout=10)
-            # How you'd index data.
-            solr.delete(id=str_dele_value)
-            print("Deleted from Solr server!")
-        else: 
-            print("Changes set don't related to Solr!")
+            #print("delete id ===========%s" % str_dele_value)
+            if (url_solr != ""):
+                # Setup a Solr instance. The timeout is optional.
+                solr = pysolr.Solr(url_solr, timeout=10)
+                # How you'd index data.
+                solr.delete(id=str_dele_value)
+                print("Deleted from Solr server: id = %s" % str_dele_value)
+            else: 
+                print("Changes set don't related to Solr!")
 class WriteRowsEvent(RowsEvent):
     """This event is triggered when a row in database is added
 
@@ -475,13 +499,8 @@ class WriteRowsEvent(RowsEvent):
 
     def _dump(self):
         super(WriteRowsEvent, self)._dump()
-        #print("Values:")
-        with open('config.json', encoding='utf-8') as data_file:
-            data1 = json.load(data_file)
-        data_file.close();
         
         url_solr = "";
-        
         for row in self.rows:
             #print("--")
             Str_add = {}
@@ -497,17 +516,25 @@ class WriteRowsEvent(RowsEvent):
                             #print("don't exits %s " % key)
                         url_solr = docu["solr_url"]
                         break
-        #print(Str_add)
-        
-        
-        if (url_solr != ""):
-            # Setup a Solr instance. The timeout is optional.
-            solr = pysolr.Solr(url_solr, timeout=10)
-            # How you'd index data.
-            solr.add([Str_add])
-            print("Added to Solr server!")
-        else: 
-            print("Changes set don't related to Solr!")            
+            
+            for index in range(len(json_obj_add)):
+                if (json_obj_add[index]["url_docu"] == url_solr):
+                    json_obj_add[index]["data"].append(Str_add)
+             
+            #obj_solr_add.append(Str_add)    
+            # Insert each rows
+            '''
+            if (url_solr != "" ):
+                # Setup a Solr instance. The timeout is optional.
+                solr = pysolr.Solr(url_solr, timeout=5)
+                solr.add(obj_solr_add)
+                global obj_solr_add
+                obj_solr_add = []
+                print("Added to Solr server one record!")
+            else: 
+                print("Changes set don't related to Solr!")   
+            '''
+                          
 class UpdateRowsEvent(RowsEvent):
     """This event is triggered when a row in the database is changed
 
@@ -518,9 +545,6 @@ class UpdateRowsEvent(RowsEvent):
     Depending of your MySQL configuration the hash can contains the full row or only the changes:
     http://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.html#sysvar_binlog_row_image
     """
-    
-   
-   
         
     def __init__(self, from_packet, event_size, table_map, ctl_connection, **kwargs):
         
@@ -543,22 +567,22 @@ class UpdateRowsEvent(RowsEvent):
 
     def _dump(self):
         super(UpdateRowsEvent, self)._dump()
-        print("Affected columns: %d" % self.number_of_columns)
-        print("#######Values:#######")
+        #print("Affected columns: %d" % self.number_of_columns)
+        #print("#######Values:#######")
         
-        with open('config.json', encoding='utf-8') as data_file:
-            data1 = json.load(data_file)
-        data_file.close();
+        #with open('config.json', encoding='utf-8') as data_file:
+        #    data1 = json.load(data_file)
+        #data_file.close();
         
         url_solr = "";
         
         for row in self.rows:
-            print("--")
+            #print("--")
             updateno = {}
             for key in row["before_values"]:
-                print("*%s:%s=>%s" % (key,
-                                      row["before_values"][key],
-                                      row["after_values"][key]))
+                #print("*%s:%s=>%s" % (key,
+                #                      row["before_values"][key],
+                #                      row["after_values"][key]))
                 
                 for docu in data1["doc1"]:
                     if (docu["schema"] == self.schema) and (docu["table"] == self.table):
@@ -567,23 +591,24 @@ class UpdateRowsEvent(RowsEvent):
                             if (key==docu["columns"][key]):
                                 updateno[docu["columns"][key]] = row["after_values"][key]
                                 break
-                        else: 
-                            print("don't exits %s " % key)
+                        #else: 
+                        #    print("don't exits %s " % key)
                         url_solr = docu["solr_url"]
                         break
                         
                             
-            print(updateno)
+            #print(updateno)
         
         
-        if (url_solr != ""):
-            # Setup a Solr instance. The timeout is optional.
-            solr = pysolr.Solr(url_solr, timeout=10)
-            # How you'd index data.
-            solr.add([updateno])
-        else: 
-            print("Changes set don't related to Solr!")   
-        
+            if (url_solr != ""):
+                # Setup a Solr instance. The timeout is optional.
+                solr = pysolr.Solr(url_solr, timeout=10)
+                # How you'd index data.
+                solr.add([updateno])
+                print("Update one record from solr server!!!")
+            else: 
+                print("Changes set don't related to Solr!")   
+      
        
 class TableMapEvent(BinLogEvent):
     """This evenement describe the structure of a table.
@@ -665,7 +690,36 @@ class TableMapEvent(BinLogEvent):
 
     def _dump(self):
         super(TableMapEvent, self)._dump()
-        print("Table id: %d" % (self.table_id))
-        print("Schema: %s" % (self.schema))
-        print("Table: %s" % (self.table))
-        print("Columns: %s" % (self.column_count))
+        #print("Table id: %d" % (self.table_id))
+        #print("Schema: %s" % (self.schema))
+        #print("Table: %s" % (self.table))
+        #print("Columns: %s" % (self.column_count))
+
+def AddThread():
+    threading.Timer(20,AddThread).start()
+    
+    for index in range(len(json_obj_add)):
+        if (json_obj_add[index]["data"] != []):
+            solr = pysolr.Solr(json_obj_add[index]["url_docu"], timeout=10)
+            solr.add(json_obj_add[index]["data"])
+            global json_obj_add
+            json_obj_add[index]["data"] = []
+            print("Add data to document: %s !" %json_obj_add[index]["url_docu"])
+        else:
+            print("Have no data to insert to document: %s" % json_obj_add[index]["url_docu"])
+            
+    '''
+    if (len(obj_solr_add) > 0):
+        solr = pysolr.Solr("http://localhost:8983/solr/document1/", timeout=10)
+        # How you'd index data.
+        #solr.add(obj_solr_add)
+        solr.add(obj_solr_add)
+        global obj_solr_add
+        obj_solr_add = []
+        print("Add data to solr!")
+        
+    else:
+        print("Have no data to add!")    
+    '''
+AddThread()
+        
