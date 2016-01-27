@@ -1,31 +1,41 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import struct
-import decimal
+
+from _sqlite3 import Row
+import codecs, sys
 import datetime
-import pysolr
+import decimal
+from idlelib.IOBinding import encoding
 import json
+from pprint import pprint
+import struct
+import threading
 import time
 import timeit
-import threading
 
-from pprint import pprint
-
+from SolrClient import SolrClient
+from pymysql.charset import charset_to_encoding
 from pymysql.util import byte2int
+from pysolr import unicode_char
+import pysolr
 
-from .event import BinLogEvent
-from .constants import FIELD_TYPE
-from .constants import BINLOG
-from .column import Column
-from .table import Table
 from .bitmap import BitCount, BitGet
-from _sqlite3 import Row
+from .column import Column
+from .constants import BINLOG
+from .constants import FIELD_TYPE
+from .event import BinLogEvent
+from .table import Table
 
+
+try:
+    from xml.etree import ElementTree as ET
+except ImportError:
+    raise ImportError("No suitable ElementTree implementation was found.")
 
 json_obj_add = []
 
-obj_solr_add = []
+#obj_solr_add = []
 
 
 
@@ -37,7 +47,7 @@ data_file.close()
 
 for p_tmp in data1["doc1"]:
     tmp = {}
-    tmp["url_docu"] = p_tmp["solr_url"]
+    tmp["collection"] = p_tmp["collection"]
     tmp["data"] = []
     json_obj_add.append(tmp)
 
@@ -225,7 +235,8 @@ class RowsEvent(BinLogEvent):
     def __read_string(self, size, column):
         string = self.packet.read_length_coded_pascal_string(size)
         if column.character_set_name is not None:
-            string = string.decode(column.character_set_name)
+            #string = string.decode(column.character_set_name)
+            string = string.decode(charset_to_encoding(column.character_set_name))
         return string
 
     def __read_bit(self, column):
@@ -455,7 +466,7 @@ class DeleteRowsEvent(RowsEvent):
         #data_file.close();
         for row in self.rows:
             #print("--")
-            
+            collection_name =""
             str_dele_value=""
             for key in row["values"]:
                 #print("*", key, ":", row["values"][key])
@@ -466,14 +477,18 @@ class DeleteRowsEvent(RowsEvent):
                                 break
                         else: 
                             print("don't exits %s " % key)
-                        url_solr = docu["solr_url"]
+                        collection_name = docu["collection"]
                         break
             #print("delete id ===========%s" % str_dele_value)
-            if (url_solr != ""):
+            if (collection_name != ""):
                 # Setup a Solr instance. The timeout is optional.
-                solr = pysolr.Solr(url_solr, timeout=10)
+                #solr = pysolr.Solr(url_solr, timeout=10)
                 # How you'd index data.
-                solr.delete(id=str_dele_value)
+                #solr.delete(id=str_dele_value)
+                solr = SolrClient(data1["solr_url"])
+                
+                solr.delete_doc_by_id(collection_name,str_dele_value)
+                solr.commit(collection_name, softCommit = True, commit = True)
                 print("Deleted from Solr server: id = %s" % str_dele_value)
             else: 
                 print("Changes set don't related to Solr!")
@@ -499,29 +514,26 @@ class WriteRowsEvent(RowsEvent):
 
     def _dump(self):
         super(WriteRowsEvent, self)._dump()
-        
-        url_solr = "";
+        collection_name = "";
         for row in self.rows:
-            #print("--")
             Str_add = {}
             for key in row["values"]:
-                #print("*", key, ":", row["values"][key])
                 for docu in data1["doc1"]:
                     if (docu["schema"] == self.schema) and (docu["table"] == self.table):
+                        
                         if key in docu["columns"]:
                             if (key==docu["columns"][key]):
+                                
                                 Str_add[docu["columns"][key]] = row["values"][key]
                                 break
                         #else: 
                             #print("don't exits %s " % key)
-                        url_solr = docu["solr_url"]
+                        collection_name = docu["collection"]
                         break
-            
+
             for index in range(len(json_obj_add)):
-                if (json_obj_add[index]["url_docu"] == url_solr):
+                if (json_obj_add[index]["collection"] == collection_name):
                     json_obj_add[index]["data"].append(Str_add)
-             
-            #obj_solr_add.append(Str_add)    
             # Insert each rows
             '''
             if (url_solr != "" ):
@@ -570,11 +582,7 @@ class UpdateRowsEvent(RowsEvent):
         #print("Affected columns: %d" % self.number_of_columns)
         #print("#######Values:#######")
         
-        #with open('config.json', encoding='utf-8') as data_file:
-        #    data1 = json.load(data_file)
-        #data_file.close();
-        
-        url_solr = "";
+        collection_name = "";
         
         for row in self.rows:
             #print("--")
@@ -593,18 +601,27 @@ class UpdateRowsEvent(RowsEvent):
                                 break
                         #else: 
                         #    print("don't exits %s " % key)
-                        url_solr = docu["solr_url"]
+                        #url_solr = docu["solr_url"]
+                        collection_name = docu["collection"]
                         break
                         
                             
             #print(updateno)
         
         
-            if (url_solr != ""):
+            if (collection_name != ""):
                 # Setup a Solr instance. The timeout is optional.
-                solr = pysolr.Solr(url_solr, timeout=10)
+                
+                solr = SolrClient(data1["solr_url"])
+            
+                solr.index_json(collection_name,json.dumps([updateno]))
+                
+                solr.commit(collection_name, softCommit=True, commit=True)
+                
+            
+                #solr = pysolr.Solr(url_solr, timeout=10)
                 # How you'd index data.
-                solr.add([updateno])
+                #solr.add([updateno])
                 print("Update one record from solr server!!!")
             else: 
                 print("Changes set don't related to Solr!")   
@@ -696,18 +713,37 @@ class TableMapEvent(BinLogEvent):
         #print("Columns: %s" % (self.column_count))
 
 def AddThread():
-    threading.Timer(20,AddThread).start()
+    threading.Timer(30,AddThread).start()
+    
+    '''
+    solr = SolrClient('http://localhost:8983/solr')
+    
+    print("11111")
+    docs = [{'id':1,'title':'đinh bá dũng', 'content':'bà à á ơ ô'},
+            {'id':2,'title':'m - U23 Jordan: Bài học ngày ra quân', 'content':'ố U23 Việt Nam không hề e sợ U23 Jordan nhưng thực sự khi nhập cuộc, đội bóng áo đỏ đã phải chơi với đội hình rất thấp khi liên tục bị đối thủ đến từ Tây Á dồn ép bằng những pha bóng bổng. Ông thầy người Nhật cũng gây bất ngờ khi không sử dụng Tuấn Anh ở đội hình xuất phát và cho U23 Việt Nam chơi với sơ đồ 4-3-3 thay vì 4-4-2 quen thuộ'}]
+    #print(docs)
+    solr.index_json('document1',json.dumps(docs))
+    
+    solr.commit('document1', softCommit=True, commit=True)
+    print("insert succsess")
+   '''
     
     for index in range(len(json_obj_add)):
         if (json_obj_add[index]["data"] != []):
-            solr = pysolr.Solr(json_obj_add[index]["url_docu"], timeout=10)
-            solr.add(json_obj_add[index]["data"])
+            data_tmp = json_obj_add[index]["data"]
             global json_obj_add
             json_obj_add[index]["data"] = []
-            print("Add data to document: %s !" %json_obj_add[index]["url_docu"])
-        else:
-            print("Have no data to insert to document: %s" % json_obj_add[index]["url_docu"])
+
+            solr = SolrClient(data1["solr_url"])
+            solr.index_json(json_obj_add[index]["collection"],json.dumps(data_tmp))
+            solr.commit(json_obj_add[index]["collection"], softCommit= True, commit=True, openSearcher=True,waitSearcher=True)
+            print("Add data to collection: %s !" %json_obj_add[index]["collection"])
             
+
+        else:
+            print("Have no data to insert to document: %s" % json_obj_add[index]["collection"])
+            
+           
     '''
     if (len(obj_solr_add) > 0):
         solr = pysolr.Solr("http://localhost:8983/solr/document1/", timeout=10)

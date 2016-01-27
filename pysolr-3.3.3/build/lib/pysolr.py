@@ -494,8 +494,10 @@ class Solr(object):
             except (SyntaxError, ExpatError) as err:
                 full_html = "%s" % response
 
+        
         full_html = force_unicode(full_html)
         full_html = full_html.replace('\n', '')
+
         full_html = full_html.replace('\r', '')
         full_html = full_html.replace('<br/>', '')
         full_html = full_html.replace('<br />', '')
@@ -814,7 +816,7 @@ class Solr(object):
         m = ET.tostring(message, encoding='utf-8')
         # Convert back to Unicode please.
         m = force_unicode(m)
-
+        
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)

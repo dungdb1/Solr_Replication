@@ -7,5 +7,6 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>C:\Users\dungdb1\AppData\Local\Programs\Python\Python35-32\Lib\site-packages\pysolr-3.3.3-py3.5.egg</path>
+<path>C:\Users\dungdb1\AppData\Local\Programs\Python\Python35-32\Lib\site-packages\SolrClient-0.0.8-py3.5.egg</path>
 </pydev_pathproperty>
 </pydev_project>
